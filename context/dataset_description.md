@@ -1,76 +1,76 @@
 # Dataset Analysis — Antibiotic Resistance Tracking Dataset
 
-## Structure du Dataset
+## Dataset Structure
 
-- **Format** : CSV
-- **Lignes** : 2 200 (enregistrements patients)
-- **Colonnes** : 12
-- **Valeurs manquantes** : aucune
+- **Format**: CSV
+- **Rows**: 2,200 (patient records)
+- **Columns**: 12
+- **Missing values**: none
 
-| Colonne | Type | Valeurs possibles |
+| Column | Type | Possible Values |
 |---|---|---|
-| `Patient_ID` | ID | P0001 → P1000 |
-| `Age` | Numérique | 1 → 90 |
-| `Gender` | Catégoriel | Male / Female |
-| `Specimen_Type` | Catégoriel | Blood, Urine, Sputum, Wound swab, Stool |
-| `Amoxicillin` | Catégoriel | Sensitive / Intermediate / Resistant |
-| `Ciprofloxacin` | Catégoriel | Sensitive / Intermediate / Resistant |
-| `Meropenem` | Catégoriel | Sensitive / Intermediate / Resistant |
-| `Vancomycin` | Catégoriel | Sensitive / Intermediate / Resistant |
-| `Colistin` | Catégoriel | Sensitive / Intermediate / Resistant |
-| `Test_Method` | Catégoriel | Automated System / MIC / Disc Diffusion |
-| `Resistance_Genes` | Catégoriel | KPC, OXA-48, VIM, NDM-1, None |
-| `Outcome` | **Cible** | **Recovered / ICU / Deceased** |
+| `Patient_ID` | ID | P0001 → P2200 |
+| `Age` | Numeric | 1 → 90 |
+| `Gender` | Categorical | Male / Female |
+| `Specimen_Type` | Categorical | Blood, Urine, Sputum, Wound swab, Stool |
+| `Amoxicillin` | Categorical | Sensitive / Intermediate / Resistant |
+| `Ciprofloxacin` | Categorical | Sensitive / Intermediate / Resistant |
+| `Meropenem` | Categorical | Sensitive / Intermediate / Resistant |
+| `Vancomycin` | Categorical | Sensitive / Intermediate / Resistant |
+| `Colistin` | Categorical | Sensitive / Intermediate / Resistant |
+| `Test_Method` | Categorical | Automated System / MIC / Disc Diffusion |
+| `Resistance_Genes` | Categorical | KPC, OXA-48, VIM, NDM-1, None |
+| `Outcome` | **Target** | **Recovered / ICU / Deceased** |
 
 ---
 
-## Cible de Prédiction
+## Prediction Target
 
-### Cible choisie : `Outcome`
+### Chosen target: `Outcome`
 
-On prédit le **devenir clinique du patient** à partir de son profil de résistance aux antibiotiques.
-C'est une **classification multi-classe à 3 classes** : `Recovered`, `ICU`, `Deceased`.
+We predict the **clinical outcome of the patient** based on their antibiotic resistance profile.
+This is a **multi-class classification problem with 3 classes**: `Recovered`, `ICU`, `Deceased`.
 
 ### Features (X)
 
 ```
-- Age                  → numérique
-- Gender               → catégoriel (Male / Female)
-- Specimen_Type        → catégoriel (Blood, Urine, Sputum, Wound swab, Stool)
-- Amoxicillin          → catégoriel (Sensitive / Intermediate / Resistant)
-- Ciprofloxacin        → catégoriel (Sensitive / Intermediate / Resistant)
-- Meropenem            → catégoriel (Sensitive / Intermediate / Resistant)
-- Vancomycin           → catégoriel (Sensitive / Intermediate / Resistant)
-- Colistin             → catégoriel (Sensitive / Intermediate / Resistant)
-- Test_Method          → catégoriel (Automated System / MIC / Disc Diffusion)
-- Resistance_Genes     → catégoriel (KPC, OXA-48, VIM, NDM-1, None)
+- Age               → numeric
+- Gender            → categorical (Male / Female)
+- Specimen_Type     → categorical (Blood, Urine, Sputum, Wound swab, Stool)
+- Amoxicillin       → categorical (Sensitive / Intermediate / Resistant)
+- Ciprofloxacin     → categorical (Sensitive / Intermediate / Resistant)
+- Meropenem         → categorical (Sensitive / Intermediate / Resistant)
+- Vancomycin        → categorical (Sensitive / Intermediate / Resistant)
+- Colistin          → categorical (Sensitive / Intermediate / Resistant)
+- Test_Method       → categorical (Automated System / MIC / Disc Diffusion)
+- Resistance_Genes  → categorical (KPC, OXA-48, VIM, NDM-1, None)
 ```
 
-### Cible (y)
+### Target (y)
 
 ```
 Outcome → Recovered / ICU / Deceased
 ```
 
-### Modèle recommandé
+### Recommended Model
 
-**LightGBM** — classification multi-classe, idéal pour :
-- Features mixtes (numériques + catégorielles)
-- Faible volumétrie (2 200 lignes)
-- Pas de GPU nécessaire (100% CPU)
+**LightGBM** — multi-class classification, ideal for:
+- Mixed features (numeric + categorical)
+- Small dataset size (2,200 rows)
+- No GPU required (100% CPU-compatible)
 
-### Métriques d'évaluation
+### Evaluation Metrics
 
-| Métrique | Objectif | Justification |
+| Metric | Target | Justification |
 |---|---|---|
-| **F1-Score Macro** | > 0.85 | Équilibre entre les 3 classes |
-| **AUC-ROC OvR** | > 0.90 | Discriminabilité multi-classe |
-| **Accuracy** | > 80% | Mesure globale |
-| **Matrice de confusion** | — | Visualiser Recovered vs Deceased notamment |
+| **F1-Score Macro** | > 0.85 | Balance across all 3 classes |
+| **AUC-ROC OvR** | > 0.90 | Multi-class discriminability |
+| **Accuracy** | > 80% | Overall performance measure |
+| **Confusion Matrix** | — | Detailed analysis of ICU vs Deceased errors |
 
-### Valeur clinique
+### Clinical Value
 
-Prédire l'`Outcome` d'un patient à partir de son profil de résistance aux antibiotiques permet :
-- D'anticiper les cas critiques nécessitant une admission en **ICU**
-- D'identifier les patients à risque de **décès**
-- D'orienter les décisions thérapeutiques en fonction du profil de résistance génétique
+Predicting the `Outcome` of a patient from their antibiotic resistance profile enables:
+- Anticipating critical cases requiring **ICU** admission
+- Identifying patients at risk of **death**
+- Guiding therapeutic decisions based on the genetic resistance profile

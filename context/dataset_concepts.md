@@ -1,105 +1,105 @@
-# Référence — Concepts du Dataset Antibiotic Resistance Tracking
+# Reference — Antibiotic Resistance Tracking Dataset Concepts
 
-## 🦠 La résistance aux antibiotiques
+## 🦠 What is Antibiotic Resistance?
 
-Un antibiotique est un médicament conçu pour **tuer ou bloquer la prolifération des bactéries**.
-La résistance apparaît quand une bactérie **mute ou acquiert des gènes** qui lui permettent de survivre malgré l'antibiotique — elle le neutralise, le pompe hors de ses cellules, ou modifie sa cible.
+An antibiotic is a drug designed to **kill or stop the growth of bacteria**.
+Resistance occurs when a bacterium **mutates or acquires genes** that allow it to survive despite the antibiotic — it can neutralize it, pump it out of its cells, or modify its target.
 
-**D'où vient-elle ?**
-- **Utilisation excessive** des antibiotiques (automédication, élevage intensif)
-- **Pression sélective** : les bactéries sensibles meurent, les résistantes survivent et se multiplient
-- **Transfert horizontal de gènes** : une bactérie résistante peut "donner" ses gènes de résistance à d'autres bactéries
+**Where does it come from?**
+- **Overuse of antibiotics** (self-medication, intensive livestock farming)
+- **Selective pressure**: sensitive bacteria die, resistant ones survive and multiply
+- **Horizontal gene transfer**: a resistant bacterium can "share" its resistance genes with other bacteria
 
-En 2019, l'AMR (Antimicrobial Resistance) a causé ~5 millions de décès indirectement — c'est une des plus grandes crises sanitaires mondiales.
+In 2019, AMR (Antimicrobial Resistance) was indirectly responsible for ~5 million deaths worldwide — making it one of the greatest public health crises of our time.
 
 ---
 
-## 💊 Les 5 antibiotiques du dataset
+## 💊 The 5 Antibiotics in the Dataset
 
-Ils représentent des **lignes de traitement successives** face aux infections graves :
+They represent **successive lines of treatment** for serious bacterial infections:
 
-| Antibiotique | Famille | Rôle clinique |
+| Antibiotic | Family | Clinical Role |
 |---|---|---|
-| **Amoxicillin** | Pénicilline | 1ère ligne — antibiotique de base, le plus prescrit au monde |
-| **Ciprofloxacin** | Fluoroquinolone | 2ème ligne — infections urinaires, respiratoires |
-| **Meropenem** | Carbapénème | 3ème ligne — infections graves, résistantes aux autres |
-| **Vancomycin** | Glycopeptide | Dernier recours — infections à bactéries Gram+ (MRSA) |
-| **Colistin** | Polymyxine | Ultime recours — quand tout le reste a échoué |
+| **Amoxicillin** | Penicillin | 1st line — the most commonly prescribed antibiotic worldwide |
+| **Ciprofloxacin** | Fluoroquinolone | 2nd line — urinary and respiratory tract infections |
+| **Meropenem** | Carbapenem | 3rd line — severe infections resistant to previous antibiotics |
+| **Vancomycin** | Glycopeptide | Last resort — Gram-positive bacterial infections (MRSA) |
+| **Colistin** | Polymyxin | Ultimate last resort — when everything else has failed |
 
-> L'ordre est important : si le patient est résistant à **Amoxicillin**, on passe à Ciprofloxacin, puis Meropenem, etc. Un patient résistant à **Colistin** n'a pratiquement plus d'options thérapeutiques.
-
----
-
-## 🏥 La colonne `Outcome`
-
-C'est le **résultat clinique du patient** — pas le résultat du test, mais ce qui lui est arrivé médicalement après le diagnostic et la prise en charge.
-
-Chaque ligne = un patient hospitalisé avec une infection bactérienne identifiée. On teste sa bactérie contre les 5 antibiotiques, et `Outcome` dit **comment s'est terminée son hospitalisation**.
-
-| Valeur | Signification |
-|---|---|
-| **Recovered** | Patient guéri et sorti de l'hôpital |
-| **ICU** | Patient transféré en réanimation — état grave, pronostic incertain |
-| **Deceased** | Patient décédé des suites de l'infection |
+> Order matters: if the patient is resistant to **Amoxicillin**, we move to Ciprofloxacin, then Meropenem, etc. A patient resistant to **Colistin** has virtually no remaining treatment options.
 
 ---
 
-## 📋 Explication des colonnes
+## 🏥 The `Outcome` Column
 
-### `Specimen_Type` — Type de prélèvement biologique
-D'où vient l'échantillon utilisé pour identifier la bactérie :
+This represents the **clinical outcome of the patient** — not the result of the lab test, but what **actually happened medically** after diagnosis and treatment.
 
-| Valeur | Description |
+Each row = a hospitalized patient with an identified bacterial infection. The bacteria is tested against the 5 antibiotics, and `Outcome` indicates **how the hospitalization ended**.
+
+| Value | Meaning |
 |---|---|
-| **Blood** | Hémoculture — bactérie dans le sang → septicémie, très grave |
-| **Urine** | ECBU — infection urinaire (cystite, pyélonéphrite) |
-| **Sputum** | Crachat — infection respiratoire (pneumonie, bronchite) |
-| **Wound swab** | Écouvillon de plaie — infection de blessure, post-opératoire |
-| **Stool** | Selles — infection digestive (gastro-entérite bactérienne) |
+| **Recovered** | Patient healed and discharged from hospital |
+| **ICU** | Patient transferred to intensive care unit — critical condition, uncertain prognosis |
+| **Deceased** | Patient died as a result of the infection |
+
+---
+
+## 📋 Column Descriptions
+
+### `Specimen_Type` — Biological Sample Type
+Indicates where the sample used to identify the bacteria was taken from:
+
+| Value | Description |
+|---|---|
+| **Blood** | Blood culture — bacteria in the bloodstream → septicemia, very serious |
+| **Urine** | Urine culture — urinary tract infection (cystitis, pyelonephritis) |
+| **Sputum** | Sputum sample — respiratory infection (pneumonia, bronchitis) |
+| **Wound swab** | Wound swab — wound or post-surgical infection |
+| **Stool** | Stool sample — digestive infection (bacterial gastroenteritis) |
 
 ---
 
 ### `Amoxicillin / Ciprofloxacin / Meropenem / Vancomycin / Colistin`
-Résultat du test de sensibilité de la bactérie du patient à chaque antibiotique :
+Result of the susceptibility test of the patient's bacteria against each antibiotic:
 
-| Valeur | Signification clinique |
+| Value | Clinical Meaning |
 |---|---|
-| **Sensitive** | L'antibiotique **tue** la bactérie → traitement efficace |
-| **Intermediate** | Efficacité **partielle ou douteuse** → à éviter si possible |
-| **Resistant** | L'antibiotique **ne fait rien** → traitement inutile, dangereux à prescrire |
+| **Sensitive** | The antibiotic **kills** the bacteria → effective treatment |
+| **Intermediate** | **Partial or uncertain** effectiveness → avoid if possible |
+| **Resistant** | The antibiotic **has no effect** → treatment is useless and potentially dangerous to prescribe |
 
 ---
 
-### `Test_Method` — Méthode de test utilisée en laboratoire
+### `Test_Method` — Laboratory Testing Method
 
-| Valeur | Description |
+| Value | Description |
 |---|---|
-| **MIC** | Minimum Inhibitory Concentration — mesure la dose minimale d'antibiotique nécessaire pour bloquer la bactérie. Très précis, résultat quantitatif |
-| **Disc Diffusion** | Disques imbibés d'antibiotiques posés sur une culture bactérienne — on mesure la zone d'inhibition. Méthode visuelle classique |
-| **Automated System** | Machine automatisée (ex: VITEK) — rapide, standard dans les hôpitaux modernes |
+| **MIC** | Minimum Inhibitory Concentration — measures the minimum dose of antibiotic needed to inhibit bacterial growth. Very precise, quantitative result |
+| **Disc Diffusion** | Antibiotic-soaked discs placed on a bacterial culture — the inhibition zone around each disc is measured. Classic visual method |
+| **Automated System** | Automated machine (e.g., VITEK) — fast, standard in modern hospitals |
 
 ---
 
-### `Resistance_Genes` — Gènes de résistance identifiés
-Gènes spécifiques que possède la bactérie pour résister — expliquent *pourquoi* elle est résistante :
+### `Resistance_Genes` — Identified Resistance Genes
+Specific genes the bacteria carries to resist antibiotics — they explain *why* it is resistant:
 
-| Valeur | Nom complet | Ce qu'il fait |
+| Value | Full Name | What It Does |
 |---|---|---|
-| **KPC** | Klebsiella pneumoniae Carbapenemase | Détruit les carbapénèmes (dont Meropenem) — très répandu |
-| **NDM-1** | New Delhi Metallo-β-lactamase | Détruit presque tous les antibiotiques β-lactamines — très dangereux |
-| **OXA-48** | Oxacillinase-48 | Résistance aux carbapénèmes, difficile à détecter |
-| **VIM** | Verona Integron-encoded Metallo-β-lactamase | Résistance large spectre, fréquent en Europe |
-| **None** | Aucun gène identifié | Résistance possible par d'autres mécanismes non génétiques |
+| **KPC** | Klebsiella pneumoniae Carbapenemase | Destroys carbapenems (including Meropenem) — very widespread |
+| **NDM-1** | New Delhi Metallo-β-lactamase | Destroys almost all β-lactam antibiotics — extremely dangerous |
+| **OXA-48** | Oxacillinase-48 | Carbapenem resistance, difficult to detect |
+| **VIM** | Verona Integron-encoded Metallo-β-lactamase | Broad-spectrum resistance, common in Europe |
+| **None** | No gene identified | Resistance may be due to other non-genetic mechanisms |
 
 ---
 
-## 🔁 Résumé global
+## 🔁 Summary
 
-**Chaque ligne du dataset = un patient hospitalisé** avec une infection bactérienne, dont on a :
-1. Identifié la source de l'infection (`Specimen_Type`)
-2. Testé la résistance de sa bactérie aux 5 antibiotiques
-3. Utilisé une méthode de test standardisée (`Test_Method`)
-4. Séquencé les gènes de résistance (`Resistance_Genes`)
-5. Suivi l'évolution jusqu'à la sortie ou le décès (`Outcome`)
+**Each row in the dataset = a hospitalized patient** with a bacterial infection, for whom clinicians have:
+1. Identified the source of the infection (`Specimen_Type`)
+2. Tested the bacteria's resistance to the 5 antibiotics
+3. Used a standardized testing method (`Test_Method`)
+4. Sequenced the resistance genes (`Resistance_Genes`)
+5. Tracked the evolution until discharge or death (`Outcome`)
 
-**Objectif ML :** prédire l'`Outcome` (Recovered / ICU / Deceased) à partir de tous ces paramètres.
+**ML Goal:** predict the `Outcome` (Recovered / ICU / Deceased) from all these parameters.
