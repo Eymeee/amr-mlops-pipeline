@@ -7,17 +7,29 @@
 
 ## 📋 Table of Contents
 
-- [Overview](#overview)
-- [Clinical Context](#clinical-context)
-- [Dataset](#dataset)
-- [MLOps Pipeline](#mlops-pipeline)
-- [Project Structure](#project-structure)
-- [Getting Started](#getting-started)
-- [ML Model](#ml-model)
-- [API](#api)
-- [Monitoring](#monitoring)
-- [CI/CD](#cicd)
-- [Tech Stack](#tech-stack)
+- [🧬 AMR MLOps Pipeline](#-amr-mlops-pipeline)
+  - [📋 Table of Contents](#-table-of-contents)
+  - [Overview](#overview)
+  - [Clinical Context](#clinical-context)
+  - [Dataset](#dataset)
+    - [Columns](#columns)
+  - [MLOps Pipeline](#mlops-pipeline)
+  - [Project Structure](#project-structure)
+  - [Getting Started](#getting-started)
+    - [Prerequisites](#prerequisites)
+    - [Installation](#installation)
+    - [Environment Setup](#environment-setup)
+    - [Run the Pipeline](#run-the-pipeline)
+  - [ML Model](#ml-model)
+    - [Target Classes](#target-classes)
+    - [Evaluation Metrics](#evaluation-metrics)
+  - [API](#api)
+    - [Example Request](#example-request)
+    - [Example Response](#example-response)
+  - [Monitoring](#monitoring)
+  - [CI/CD](#cicd)
+  - [Tech Stack](#tech-stack)
+  - [Author](#author)
 
 ---
 
@@ -124,12 +136,12 @@ Mendeley CSV
 amr-mlops-pipeline/
 ├── .github/
 │   └── workflows/          # GitHub Actions CI/CD pipelines
+├── context/                # Dataset description and concepts
+│   ├── dataset_description.md
+│   └── dataset_concepts.md
 ├── data/
 │   ├── raw/                # Raw data from Mendeley (DVC-tracked)
 │   └── processed/          # Preprocessed data (DVC-tracked)
-├── notebooks/
-│   ├── dataset_analysis_en.md
-│   └── dataset_concepts_en.md
 ├── src/
 │   ├── ingestion/          # Data download and inspection
 │   │   └── ingest.py
@@ -143,7 +155,6 @@ amr-mlops-pipeline/
 │       └── monitor.py
 ├── tests/                  # pytest unit tests
 ├── .dvc/                   # DVC configuration
-├── .env.example            # Environment variables template
 ├── .gitignore
 ├── pyproject.toml          # uv dependencies
 └── README.md
