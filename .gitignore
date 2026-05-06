@@ -3,7 +3,6 @@ __pycache__/
 *.py[codz]
 *$py.class
 
-data/
 AGENTS.md
 
 # C extensions
