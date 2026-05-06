@@ -1,0 +1,9 @@
+stages:
+  preprocess:
+    cmd: uv run python src/preprocessing/preprocess.py
+    deps:
+    - data/raw/antibiotic_resistance_tracking.csv
+    - src/ingestion/ingest.py
+    - src/preprocessing/preprocess.py
+    outs:
+    - data/processed
