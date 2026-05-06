@@ -1,0 +1,23 @@
+schema: '2.0'
+stages:
+  preprocess:
+    cmd: uv run python src/preprocessing/preprocess.py
+    deps:
+    - path: data/raw/antibiotic_resistance_tracking.csv
+      hash: md5
+      md5: e99d0abdecc3da1e9fe26a4666569a9c
+      size: 226610
+    - path: src/ingestion/ingest.py
+      hash: md5
+      md5: aae6bb443d9cb9ce8c23d2d7e63f123e
+      size: 10287
+    - path: src/preprocessing/preprocess.py
+      hash: md5
+      md5: b81c71aedbcc0fb8ddc59ae528b7d398
+      size: 7945
+    outs:
+    - path: data/processed
+      hash: md5
+      md5: a1d4643549a419516f6cfefbb5e628cb.dir
+      size: 52347
+      nfiles: 4
