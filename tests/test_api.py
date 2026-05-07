@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 
-from src.serving.api import CLINICAL_WARNING, app
+from src.serving.api import CLINICAL_WARNING, app # pyrefly: ignore[missing-import]
 
 
 client = TestClient(app)
