@@ -218,3 +218,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local ML artifacts
+models/
+mlruns/
+mlflow.db
