@@ -55,7 +55,7 @@ def test_predict_returns_prediction_probabilities_and_warning() -> None:
     assert payload["prediction"] in {"Recovered", "ICU", "Deceased"}
     assert payload["prediction_id"] in {0, 1, 2}
     assert set(payload["probabilities"]) == {"Recovered", "ICU", "Deceased"}
-    assert sum(payload["probabilities"].values()) == 1.0
+    assert abs(sum(payload["probabilities"].values()) - 1.0) < 1e-6
     assert payload["warning"] == CLINICAL_WARNING
     assert payload["model_info"]["selected_model"]
 
