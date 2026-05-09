@@ -32,3 +32,6 @@ jobs:
 
       - name: Run tests
         run: uv run pytest tests/ --ignore=tests/test_api.py -v
+
+      - name: Build Docker image
+        run: docker build -t amr-outcome-api .
