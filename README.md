@@ -1,330 +1,516 @@
-# 🧬 AMR MLOps Pipeline
+# AMR MLOps Pipeline
 
-> **Predicting Clinical Outcomes from Antibiotic Resistance Profiles**
-> A complete end-to-end MLOps pipeline for clinical decision support in infectious disease management.
+End-to-end MLOps demo for antimicrobial resistance data: ingestion, validation,
+preprocessing, model benchmarking, experiment tracking, FastAPI serving, Docker,
+CI/CD, and monitoring with Prometheus/Grafana.
 
----
+## Important Modeling Caveat
 
-## 📋 Table of Contents
+This project is **not a clinically valid prediction system**.
 
-- [🧬 AMR MLOps Pipeline](#-amr-mlops-pipeline)
-  - [📋 Table of Contents](#-table-of-contents)
-  - [Overview](#overview)
-  - [Clinical Context](#clinical-context)
+The current dataset does not show meaningful predictive signal for the
+`Outcome` target. Benchmarking and statistical checks showed near-random
+validation/test performance, even after Optuna tuning across LightGBM, XGBoost,
+and CatBoost. The project should therefore be understood as a technical MLOps
+pipeline demonstration, not as a deployable clinical decision-support model.
+
+See [context/modeling_findings.md](context/modeling_findings.md) for the full
+modeling audit.
+
+## Table of Contents
+
+- [AMR MLOps Pipeline](#amr-mlops-pipeline)
+  - [Important Modeling Caveat](#important-modeling-caveat)
+  - [Table of Contents](#table-of-contents)
+  - [Project Scope](#project-scope)
   - [Dataset](#dataset)
-    - [Columns](#columns)
-  - [MLOps Pipeline](#mlops-pipeline)
+  - [Pipeline Overview](#pipeline-overview)
   - [Project Structure](#project-structure)
-  - [Getting Started](#getting-started)
-    - [Prerequisites](#prerequisites)
-    - [Installation](#installation)
-    - [Environment Setup](#environment-setup)
-    - [Run the Pipeline](#run-the-pipeline)
-  - [ML Model](#ml-model)
-    - [Target Classes](#target-classes)
-    - [Evaluation Metrics](#evaluation-metrics)
-  - [API](#api)
-    - [Example Request](#example-request)
-    - [Example Response](#example-response)
+  - [Setup](#setup)
+  - [Data Versioning With DVC](#data-versioning-with-dvc)
+  - [Run The Pipeline](#run-the-pipeline)
+  - [Training And Experiment Tracking](#training-and-experiment-tracking)
+  - [Serving API](#serving-api)
+  - [Docker Stack](#docker-stack)
   - [Monitoring](#monitoring)
-  - [CI/CD](#cicd)
+  - [Tests And CI](#tests-and-ci)
+  - [Current Status](#current-status)
   - [Tech Stack](#tech-stack)
-  - [Author](#author)
 
----
+## Project Scope
 
-## Overview
+The pipeline covers the main lifecycle pieces of a local MLOps project:
 
-This project builds a **production-grade MLOps pipeline** that predicts the clinical outcome of hospitalized patients (`Recovered` / `ICU` / `Deceased`) based on their antibiotic resistance profile and demographic characteristics.
+- Validate a raw AMR CSV dataset.
+- Encode features with deterministic mappings.
+- Split data into train, validation, and test sets.
+- Track raw and processed data with DVC.
+- Benchmark three gradient boosting model families.
+- Log experiments, metrics, and artifacts with MLflow.
+- Serve the selected model through FastAPI.
+- Expose API and monitoring metrics for Prometheus.
+- Run a Docker Compose stack for API, monitor, Prometheus, and Grafana.
+- Run minimal CI with dependency installation, Ruff, pytest, and Docker build.
 
-The pipeline covers the full ML lifecycle: data ingestion, preprocessing, experiment tracking, model serving, CI/CD automation, and production monitoring.
-
----
-
-## Clinical Context
-
-Antimicrobial Resistance (AMR) is one of the greatest public health threats of the 21st century — responsible for an estimated 5 million deaths in 2019. When a patient is hospitalized with a bacterial infection, clinicians must quickly determine which antibiotic will be effective. This model supports that decision by predicting patient outcomes based on resistance profiles.
-
-**Target application:** Clinical microbiology departments and therapeutic decision support systems.
-
----
+The serving layer keeps a warning in every user-facing API response explaining
+that predictions are not clinically valid.
 
 ## Dataset
 
-**Source:** [Antibiotic Resistance Tracking Dataset — Mendeley Data](https://data.mendeley.com/datasets/h4byb28gcv/2)
-**License:** CC BY 4.0
-
 | Property | Value |
 |---|---|
-| Records | 2,200 patients |
+| Source | Mendeley Data |
+| License | CC BY 4.0 |
+| Raw file | `data/raw/antibiotic_resistance_tracking.csv` |
+| Rows | 2,200 |
 | Columns | 12 |
-| Missing values | None |
-| Format | Single CSV file |
+| Target | `Outcome` |
+| DVC status | Local-only DVC tracking, no remote configured |
 
-### Columns
+Raw columns:
 
-| Column | Type | Values |
+| Column | Role | Values |
 |---|---|---|
-| `Patient_ID` | ID | P0001 → P2200 |
-| `Age` | Numeric | 1–90 |
-| `Gender` | Categorical | Male / Female |
-| `Specimen_Type` | Categorical | Blood, Urine, Sputum, Wound swab, Stool |
-| `Amoxicillin` | Categorical | Sensitive / Intermediate / Resistant |
-| `Ciprofloxacin` | Categorical | Sensitive / Intermediate / Resistant |
-| `Meropenem` | Categorical | Sensitive / Intermediate / Resistant |
-| `Vancomycin` | Categorical | Sensitive / Intermediate / Resistant |
-| `Colistin` | Categorical | Sensitive / Intermediate / Resistant |
-| `Test_Method` | Categorical | Automated System / MIC / Disc Diffusion |
-| `Resistance_Genes` | Categorical | KPC, NDM-1, OXA-48, VIM, None |
-| `Outcome` ⭐ | **Target** | **Recovered / ICU / Deceased** |
+| `Patient_ID` | Metadata only | Blank/duplicate values exist, not used for modeling |
+| `Age` | Feature | Numeric |
+| `Gender` | Feature | `Female`, `Male` |
+| `Specimen_Type` | Feature | `Blood`, `Sputum`, `Stool`, `Urine`, `Wound swab` |
+| `Amoxicillin` | Feature | `Sensitive`, `Intermediate`, `Resistant` |
+| `Ciprofloxacin` | Feature | `Sensitive`, `Intermediate`, `Resistant` |
+| `Meropenem` | Feature | `Sensitive`, `Intermediate`, `Resistant` |
+| `Vancomycin` | Feature | `Sensitive`, `Intermediate`, `Resistant` |
+| `Colistin` | Feature | `Sensitive`, `Intermediate`, `Resistant` |
+| `Test_Method` | Feature | `Automated System`, `Disc Diffusion`, `MIC` |
+| `Resistance_Genes` | Feature | `KPC`, `NDM-1`, `None`, `OXA-48`, `VIM` |
+| `Outcome` | Target | `Recovered`, `ICU`, `Deceased` |
 
-> See [`notebooks/dataset_concepts_en.md`](notebooks/dataset_concepts_en.md) for a detailed explanation of each column.
+The ingestion step reads the CSV with `keep_default_na=False` so the literal
+`Resistance_Genes=None` category is preserved instead of being interpreted as a
+missing value.
 
----
+## Pipeline Overview
 
-## MLOps Pipeline
-
+```text
+Raw CSV
+  |
+  v
+Ingestion validation
+  - schema checks
+  - row count checks
+  - allowed-value checks
+  - Patient_ID warnings
+  |
+  v
+Preprocessing
+  - drop Patient_ID
+  - deterministic categorical encoding
+  - stratified train/val/test split
+  - metadata JSON
+  |
+  v
+DVC
+  - raw CSV tracked by .dvc file
+  - preprocessing stage in dvc.yaml
+  |
+  v
+Training
+  - LightGBM
+  - XGBoost
+  - CatBoost
+  - Optuna tuning
+  - MLflow logging
+  |
+  v
+Serving
+  - FastAPI
+  - local pickle model artifact
+  - preprocessing metadata
+  - Prometheus API metrics
+  |
+  v
+Monitoring
+  - Evidently drift report
+  - Prometheus scraping
+  - Grafana visualization
 ```
-Mendeley CSV
-     │
-     ▼
-┌─────────────┐
-│  1. Ingest  │  Download CSV · DVC versioning
-└──────┬──────┘
-       │
-       ▼
-┌──────────────────┐
-│  2. Preprocess   │  Encoding · Normalization · Train/Val/Test split
-└──────┬───────────┘
-       │
-       ▼
-┌──────────────┐
-│  3. Version  │  DVC pipelines · Git metadata
-└──────┬───────┘
-       │
-       ▼
-┌──────────────┐
-│  4. Train    │  LightGBM · Optuna hyperparameter tuning
-└──────┬───────┘
-       │
-       ▼
-┌──────────────┐
-│  5. Track    │  MLflow experiments · Model Registry
-└──────┬───────┘
-       │
-       ▼
-┌──────────────┐
-│  6. Serve    │  FastAPI · Docker
-└──────┬───────┘
-       │
-       ▼
-┌──────────────┐
-│  7. CI/CD    │  GitHub Actions · pytest · Docker Hub
-└──────┬───────┘
-       │
-       ▼
-┌──────────────┐
-│  8. Monitor  │  Evidently AI · Prometheus · Grafana
-└──────────────┘
-```
-
----
 
 ## Project Structure
 
+```text
+.
+|-- .github/workflows/ci.yml
+|-- context/
+|   `-- modeling_findings.md
+|-- data/
+|   |-- raw/
+|   |   |-- antibiotic_resistance_tracking.csv
+|   |   `-- antibiotic_resistance_tracking.csv.dvc
+|   `-- processed/
+|       |-- train.csv
+|       |-- val.csv
+|       |-- test.csv
+|       `-- preprocessing_metadata.json
+|-- monitoring/
+|   |-- prometheus.yml
+|   `-- reports/
+|       `-- drift_report.html
+|-- src/
+|   |-- ingestion/ingest.py
+|   |-- preprocessing/preprocess.py
+|   |-- training/train.py
+|   |-- serving/api.py
+|   `-- monitoring/monitor.py
+|-- tests/
+|-- Dockerfile
+|-- compose.yaml
+|-- dvc.yaml
+|-- pyproject.toml
+|-- uv.lock
+`-- README.md
 ```
-amr-mlops-pipeline/
-├── .github/
-│   └── workflows/          # GitHub Actions CI/CD pipelines
-├── context/                # Dataset description and concepts
-│   ├── dataset_description.md
-│   └── dataset_concepts.md
-├── data/
-│   ├── raw/                # Raw data from Mendeley (DVC-tracked)
-│   └── processed/          # Preprocessed data (DVC-tracked)
-├── src/
-│   ├── ingestion/          # Data download and inspection
-│   │   └── ingest.py
-│   ├── preprocessing/      # Feature engineering and encoding
-│   │   └── preprocess.py
-│   ├── training/           # LightGBM training + Optuna tuning
-│   │   └── train.py
-│   ├── serving/            # FastAPI REST API
-│   │   └── api.py
-│   └── monitoring/         # Evidently AI drift detection
-│       └── monitor.py
-├── tests/                  # pytest unit tests
-├── .dvc/                   # DVC configuration
-├── .gitignore
-├── pyproject.toml          # uv dependencies
-└── README.md
-```
 
----
+Some local outputs are intentionally ignored by Git, including `models/`,
+`mlruns/`, `mlflow.db`, data artifacts, and generated monitoring reports.
 
-## Getting Started
+## Setup
 
-### Prerequisites
+Prerequisites:
 
-- Python 3.12+
-- [uv](https://github.com/astral-sh/uv) (Python package manager)
-- Git + DVC
-- Docker (for serving)
+- Python 3.12
+- `uv`
+- Git
+- DVC
+- Docker and Docker Compose for the containerized stack
 
-### Installation
+Install dependencies from the lock file:
 
 ```bash
-# Clone the repository
-git clone git@github.com:<your-username>/amr-mlops-pipeline.git
-cd amr-mlops-pipeline
+uv sync --frozen
+```
 
-# Create virtual environment and install dependencies
+If you need to create the environment from scratch:
+
+```bash
 uv venv --python 3.12
-uv add lightgbm scikit-learn pandas numpy optuna \
-       fastapi uvicorn mlflow dvc \
-       pytest httpx python-dotenv
+uv sync --frozen
 ```
 
-### Environment Setup
+## Data Versioning With DVC
+
+The raw CSV is tracked with DVC:
 
 ```bash
-cp .env.example .env
-# Fill in your credentials in .env
+data/raw/antibiotic_resistance_tracking.csv.dvc
 ```
 
-### Run the Pipeline
+The preprocessing stage is defined in [dvc.yaml](dvc.yaml):
 
 ```bash
-# 1. Ingest data
+uv run dvc repro
+```
+
+Useful DVC commands:
+
+```bash
+uv run dvc status
+uv run dvc repro
+uv run dvc dag
+```
+
+No DVC remote is configured yet. Data is local-only for now.
+
+## Run The Pipeline
+
+Validate the raw dataset:
+
+```bash
 uv run python src/ingestion/ingest.py
-
-# 2. Preprocess
-uv run python src/preprocessing/preprocess.py
-
-# 3. Train
-uv run python src/training/train.py
-
-# 4. Serve (local)
-uv run uvicorn src.serving.api:app --reload
-
-# 5. Run tests
-uv run pytest tests/
 ```
 
----
-
-## ML Model
-
-| Property | Value |
-|---|---|
-| Algorithm | LightGBM |
-| Task | Multi-class classification (3 classes) |
-| Tuning | Optuna (hyperparameter optimization) |
-| Tracking | MLflow |
-| Hardware | 100% CPU — no GPU required |
-
-### Target Classes
-
-| Class | Description |
-|---|---|
-| `Recovered` | Patient healed and discharged |
-| `ICU` | Patient transferred to intensive care |
-| `Deceased` | Patient died from the infection |
-
-### Evaluation Metrics
-
-| Metric | Target |
-|---|---|
-| F1-Score Macro | > 0.85 |
-| AUC-ROC (OvR) | > 0.90 |
-| Accuracy | > 80% |
-
----
-
-## API
-
-Once deployed, the FastAPI server exposes:
-
-```
-POST /predict     →  Returns Outcome class + probabilities
-GET  /health      →  Health check
-GET  /docs        →  Interactive Swagger UI
-```
-
-### Example Request
+Generate processed train/validation/test splits:
 
 ```bash
-curl -X POST http://localhost:8000/predict \
+uv run python src/preprocessing/preprocess.py
+```
+
+Run the training benchmark:
+
+```bash
+uv run python src/training/train.py
+```
+
+Run a smaller smoke benchmark:
+
+```bash
+uv run python src/training/train.py --n-trials 1
+```
+
+Launch the MLflow UI:
+
+```bash
+uv run mlflow ui
+```
+
+Then open:
+
+```text
+http://127.0.0.1:5000
+```
+
+## Training And Experiment Tracking
+
+Training is implemented in [src/training/train.py](src/training/train.py).
+
+The script benchmarks:
+
+- `lightgbm.LGBMClassifier`
+- `xgboost.XGBClassifier`
+- `catboost.CatBoostClassifier`
+
+Each model gets its own Optuna study. The selected model is chosen by validation
+`f1_macro`, then evaluated once on the held-out test set.
+
+Tracked metrics:
+
+- `f1_macro`
+- `accuracy`
+- `auc_roc_ovr`
+- confusion matrix artifacts
+
+Local training outputs:
+
+```text
+models/best_model.pkl
+models/training_summary.json
+models/confusion_matrix_val.csv
+models/confusion_matrix_test.csv
+```
+
+The best 100-trial run remained near random:
+
+| Metric | Validation | Test |
+|---|---:|---:|
+| F1 macro | 0.3668 | 0.3139 |
+| Accuracy | 0.3727 | 0.3152 |
+| AUC ROC OvR | 0.5095 | 0.4994 |
+
+This is why the project keeps the model as a demo artifact and focuses on MLOps
+reproducibility instead of pretending the model is clinically useful.
+
+## Serving API
+
+The FastAPI app is implemented in [src/serving/api.py](src/serving/api.py).
+
+Required local artifacts:
+
+```text
+models/best_model.pkl
+models/training_summary.json
+data/processed/preprocessing_metadata.json
+```
+
+Run locally:
+
+```bash
+uv run uvicorn src.serving.api:app --reload
+```
+
+API endpoints:
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/health` | Artifact readiness and selected model |
+| `GET` | `/model-info` | Training summary, metrics, schema, class labels |
+| `POST` | `/predict` | Single-patient demo prediction |
+| `GET` | `/metrics` | Prometheus metrics for the API |
+| `GET` | `/docs` | Swagger UI |
+
+Example prediction request:
+
+```bash
+curl -X POST http://127.0.0.1:8000/predict \
   -H "Content-Type: application/json" \
   -d '{
-    "age": 65,
-    "gender": "Male",
+    "age": 36,
+    "gender": "Female",
     "specimen_type": "Blood",
-    "amoxicillin": "Resistant",
-    "ciprofloxacin": "Resistant",
+    "amoxicillin": "Intermediate",
+    "ciprofloxacin": "Sensitive",
     "meropenem": "Intermediate",
-    "vancomycin": "Sensitive",
-    "colistin": "Sensitive",
+    "vancomycin": "Intermediate",
+    "colistin": "Intermediate",
     "test_method": "Automated System",
     "resistance_genes": "KPC"
   }'
 ```
 
-### Example Response
+Example response shape:
 
 ```json
 {
-  "outcome": "ICU",
+  "prediction": "ICU",
+  "prediction_id": 1,
   "probabilities": {
-    "Recovered": 0.21,
-    "ICU": 0.61,
-    "Deceased": 0.18
+    "Recovered": 0.31,
+    "ICU": 0.36,
+    "Deceased": 0.33
+  },
+  "warning": "This model is a technical MLOps demo and is not clinically valid. Dataset signal audit found no meaningful association between available features and Outcome.",
+  "model_info": {
+    "selected_model": "lightgbm",
+    "validation_metrics": {
+      "f1_macro": 0.3668,
+      "accuracy": 0.3727,
+      "auc_roc_ovr": 0.5095
+    },
+    "test_metrics": {
+      "f1_macro": 0.3139,
+      "accuracy": 0.3152,
+      "auc_roc_ovr": 0.4994
+    }
   }
 }
 ```
 
----
+The exact probabilities depend on the local trained model artifact.
+
+## Docker Stack
+
+The Docker image contains source code and dependencies only. It does not bake in
+ignored model or data artifacts. Those are mounted at runtime.
+
+Build and run the full stack:
+
+```bash
+sudo docker compose up --build
+```
+
+Stop the stack:
+
+```bash
+sudo docker compose down
+```
+
+The current Compose file uses host networking because this local environment had
+bridge-network limitations during Docker builds and service scraping.
+
+Runtime mounts:
+
+- `./models:/app/models:ro`
+- `./data/processed:/app/data/processed:ro`
+- `./monitoring/reports:/app/monitoring/reports`
+
+Useful URLs:
+
+| Service | URL |
+|---|---|
+| API health | `http://127.0.0.1:8000/health` |
+| API docs | `http://127.0.0.1:8000/docs` |
+| API metrics | `http://127.0.0.1:8000/metrics` |
+| Monitor metrics | `http://127.0.0.1:8001/metrics` |
+| Prometheus | `http://127.0.0.1:9090` |
+| Prometheus targets | `http://127.0.0.1:9090/targets` |
+| Grafana | `http://127.0.0.1:3000` |
+
+Grafana login:
+
+```text
+username: admin
+password: admin
+```
 
 ## Monitoring
 
-The monitoring stack tracks model behavior in production:
+Monitoring is implemented in [src/monitoring/monitor.py](src/monitoring/monitor.py).
 
-- **Evidently AI** — data drift detection on resistance profiles
-- **Prometheus** — metrics collection
-- **Grafana** — real-time dashboard with alerts
+The monitoring script:
 
----
+- Loads `data/processed/train.csv` as reference data.
+- Loads `data/processed/test.csv` as current data.
+- Drops the `Outcome` target before drift analysis.
+- Runs an Evidently `DataDriftPreset` report.
+- Saves the HTML report to `monitoring/reports/drift_report.html`.
+- Exposes Prometheus metrics on port `8001`.
 
-## CI/CD
+Monitoring metrics:
 
-GitHub Actions pipeline triggered on every push to `main`:
+| Metric | Type | Purpose |
+|---|---|---|
+| `amr_predictions_total` | Counter | Simulated prediction volume |
+| `amr_drifted_features_ratio` | Gauge | Ratio of drifted features from Evidently |
+| `amr_prediction_latency_seconds` | Histogram | Simulated prediction latency |
 
+The API also exposes:
+
+| Metric | Type | Purpose |
+|---|---|---|
+| `amr_api_requests_total` | Counter | Requests by API endpoint |
+| `amr_api_prediction_latency_seconds` | Histogram | Prediction latency |
+
+Run the monitor directly:
+
+```bash
+uv run python src/monitoring/monitor.py
 ```
-push to main
-     │
-     ├── pytest (unit tests)
-     ├── flake8 (linting)
-     ├── docker build
-     ├── docker push → Docker Hub
-     └── deploy to production
+
+Prometheus scrape configuration is in
+[monitoring/prometheus.yml](monitoring/prometheus.yml).
+
+## Tests And CI
+
+Run all local tests:
+
+```bash
+uv run pytest tests/ -v
 ```
 
----
+Run CI-equivalent checks locally:
+
+```bash
+uv run ruff check src/ tests/
+uv run pytest tests/ --ignore=tests/test_api.py -v
+docker build -t amr-outcome-api .
+```
+
+`tests/test_api.py` is ignored in CI because it requires local model artifacts
+under `models/`, which are not committed to Git.
+
+The GitHub Actions workflow in [.github/workflows/ci.yml](.github/workflows/ci.yml)
+runs on push and pull request to `main`:
+
+1. Check out code.
+2. Set up Python 3.12.
+3. Install `uv`.
+4. Install dependencies with `uv sync --frozen`.
+5. Run Ruff.
+6. Run pytest smoke tests.
+7. Build the Docker image.
+
+The CI workflow does not push to Docker Hub and does not deploy.
+
+## Current Status
+
+- Ingestion validation is implemented.
+- Preprocessing and deterministic metadata export are implemented.
+- DVC tracks the raw CSV and preprocessing stage locally.
+- Training benchmarks LightGBM, XGBoost, and CatBoost with Optuna and MLflow.
+- Modeling findings are documented and treated as a project constraint.
+- FastAPI serving is implemented with clinical-validity warnings.
+- API smoke tests pass locally.
+- Docker Compose stack is verified locally.
+- GitHub Actions CI passes.
+- Prometheus and Grafana monitoring are verified locally.
 
 ## Tech Stack
 
-| Category | Tools |
+| Area | Tools |
 |---|---|
-| **ML** | LightGBM, Scikit-learn, Optuna |
-| **Data Versioning** | DVC, Git |
-| **Experiment Tracking** | MLflow |
-| **Serving** | FastAPI, Docker, Docker Compose |
-| **CI/CD** | GitHub Actions, pytest, flake8 |
-| **Monitoring** | Evidently AI, Prometheus, Grafana |
-| **Environment** | Python 3.12, uv |
-
----
-
-## Author
-
-**SALHI Aymane** — MLOps Project 2025-2026
+| Environment | Python 3.12, uv |
+| Data | pandas, DVC |
+| ML | scikit-learn, LightGBM, XGBoost, CatBoost |
+| Optimization | Optuna |
+| Tracking | MLflow |
+| Serving | FastAPI, Uvicorn |
+| Containers | Docker, Docker Compose |
+| Monitoring | Evidently, prometheus-client, Prometheus, Grafana |
+| Testing and CI | pytest, Ruff, GitHub Actions |
