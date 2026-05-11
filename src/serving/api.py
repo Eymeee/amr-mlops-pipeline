@@ -10,13 +10,32 @@ from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
+from prometheus_client import (
+    CONTENT_TYPE_LATEST,
+    CollectorRegistry,
+    Counter,
+    Histogram,
+    generate_latest,
+)
 from pydantic import BaseModel, Field
 
 
 MODEL_PATH = Path("models/best_model.pkl")
 TRAINING_SUMMARY_PATH = Path("models/training_summary.json")
 PREPROCESSING_METADATA_PATH = Path("data/processed/preprocessing_metadata.json")
+METRICS_REGISTRY = CollectorRegistry()
+API_REQUESTS_TOTAL = Counter(
+    "amr_api_requests_total",
+    "Total number of FastAPI requests handled by endpoint.",
+    ["endpoint"],
+    registry=METRICS_REGISTRY,
+)
+API_PREDICTION_LATENCY_SECONDS = Histogram(
+    "amr_api_prediction_latency_seconds",
+    "FastAPI prediction request latency in seconds.",
+    registry=METRICS_REGISTRY,
+)
 
 CLINICAL_WARNING = (
     "This model is a technical MLOps demo and is not clinically valid. "
@@ -198,6 +217,7 @@ app = FastAPI(
 
 @app.get("/health", response_model=HealthResponse)
 def health() -> HealthResponse:
+    API_REQUESTS_TOTAL.labels(endpoint="/health").inc()
     artifacts = load_artifacts()
     return HealthResponse(
         status="ready",
@@ -210,6 +230,7 @@ def health() -> HealthResponse:
 
 @app.get("/model-info", response_model=ModelInfoResponse)
 def model_info() -> ModelInfoResponse:
+    API_REQUESTS_TOTAL.labels(endpoint="/model-info").inc()
     artifacts = load_artifacts()
     return ModelInfoResponse(
         selected_model=artifacts.training_summary["selected_model"],
@@ -228,10 +249,12 @@ def model_info() -> ModelInfoResponse:
 
 @app.post("/predict", response_model=PredictionResponse)
 def predict(request: PredictionRequest) -> PredictionResponse:
-    artifacts = load_artifacts()
-    features = _encode_request(request, artifacts)
-    prediction_id = int(np.asarray(artifacts.model.predict(features)).reshape(-1)[0])
-    probabilities = np.asarray(artifacts.model.predict_proba(features))[0]
+    API_REQUESTS_TOTAL.labels(endpoint="/predict").inc()
+    with API_PREDICTION_LATENCY_SECONDS.time():
+        artifacts = load_artifacts()
+        features = _encode_request(request, artifacts)
+        prediction_id = int(np.asarray(artifacts.model.predict(features)).reshape(-1)[0])
+        probabilities = np.asarray(artifacts.model.predict_proba(features))[0]
 
     return PredictionResponse(
         prediction=artifacts.inverse_target_mapping[prediction_id],
@@ -239,4 +262,12 @@ def predict(request: PredictionRequest) -> PredictionResponse:
         probabilities=_probability_mapping(probabilities, artifacts),
         warning=CLINICAL_WARNING,
         model_info=_model_info(artifacts),
+    )
+
+
+@app.get("/metrics")
+def metrics() -> Response:
+    return Response(
+        content=generate_latest(METRICS_REGISTRY),
+        media_type=CONTENT_TYPE_LATEST,
     )

@@ -1,0 +1,13 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: "fastapi"
+    static_configs:
+      - targets:
+          - "127.0.0.1:8000"
+
+  - job_name: "monitor"
+    static_configs:
+      - targets:
+          - "127.0.0.1:8001"
