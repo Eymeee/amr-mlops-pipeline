@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 
 AGENTS.md
+demo_guide.md
 
 # C extensions
 *.so
