@@ -27,6 +27,7 @@ modeling audit.
   - [Pipeline Overview](#pipeline-overview)
   - [Project Structure](#project-structure)
   - [Setup](#setup)
+  - [Command Shortcuts](#command-shortcuts)
   - [Data Versioning With DVC](#data-versioning-with-dvc)
   - [Run The Pipeline](#run-the-pipeline)
   - [Training And Experiment Tracking](#training-and-experiment-tracking)
@@ -164,6 +165,7 @@ Monitoring
 |-- Dockerfile
 |-- compose.yaml
 |-- dvc.yaml
+|-- Makefile
 |-- pyproject.toml
 |-- uv.lock
 `-- README.md
@@ -193,6 +195,36 @@ If you need to create the environment from scratch:
 ```bash
 uv venv --python 3.12
 uv sync --frozen
+```
+
+## Command Shortcuts
+
+The root [Makefile](Makefile) wraps the most common local commands.
+
+Show available targets:
+
+```bash
+make help
+```
+
+Common shortcuts:
+
+```bash
+make ingest       # Validate raw data
+make preprocess   # Build processed train/val/test splits
+make dvc-repro    # Reproduce the DVC preprocessing stage
+make train-smoke  # Run a 1-trial training smoke test
+make check        # Run Ruff + CI-safe tests
+make api          # Start the local FastAPI service
+make stack-up     # Start Docker Compose stack
+make stack-down   # Stop Docker Compose stack
+```
+
+The Docker Compose wrapper defaults to `sudo docker compose` because this local
+environment has required sudo. Override it when Docker does not need sudo:
+
+```bash
+make stack-up DOCKER_COMPOSE="docker compose"
 ```
 
 ## Data Versioning With DVC
@@ -225,30 +257,40 @@ Validate the raw dataset:
 
 ```bash
 uv run python src/ingestion/ingest.py
+# or
+make ingest
 ```
 
 Generate processed train/validation/test splits:
 
 ```bash
 uv run python src/preprocessing/preprocess.py
+# or
+make preprocess
 ```
 
 Run the training benchmark:
 
 ```bash
 uv run python src/training/train.py
+# or
+make train
 ```
 
 Run a smaller smoke benchmark:
 
 ```bash
 uv run python src/training/train.py --n-trials 1
+# or
+make train-smoke
 ```
 
 Launch the MLflow UI:
 
 ```bash
 uv run mlflow ui
+# or
+make mlflow
 ```
 
 Then open:
@@ -313,6 +355,8 @@ Run locally:
 
 ```bash
 uv run uvicorn src.serving.api:app --reload
+# or
+make api
 ```
 
 API endpoints:
@@ -383,12 +427,16 @@ Build and run the full stack:
 
 ```bash
 sudo docker compose up --build
+# or
+make stack-up
 ```
 
 Stop the stack:
 
 ```bash
 sudo docker compose down
+# or
+make stack-down
 ```
 
 The current Compose file uses host networking because this local environment had
@@ -451,6 +499,8 @@ Run the monitor directly:
 
 ```bash
 uv run python src/monitoring/monitor.py
+# or
+make monitor
 ```
 
 Prometheus scrape configuration is in
@@ -462,6 +512,8 @@ Run all local tests:
 
 ```bash
 uv run pytest tests/ -v
+# or
+make test
 ```
 
 Run CI-equivalent checks locally:
@@ -470,6 +522,12 @@ Run CI-equivalent checks locally:
 uv run ruff check src/ tests/
 uv run pytest tests/ --ignore=tests/test_api.py -v
 docker build -t amr-outcome-api .
+```
+
+The Makefile shortcut for the first two CI-equivalent checks is:
+
+```bash
+make check
 ```
 
 `tests/test_api.py` is ignored in CI because it requires local model artifacts
@@ -498,6 +556,7 @@ The CI workflow does not push to Docker Hub and does not deploy.
 - FastAPI serving is implemented with clinical-validity warnings.
 - API smoke tests pass locally.
 - Docker Compose stack is verified locally.
+- Makefile command shortcuts are available for local workflows.
 - GitHub Actions CI passes.
 - Prometheus and Grafana monitoring are verified locally.
 
