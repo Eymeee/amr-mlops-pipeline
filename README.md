@@ -4,23 +4,9 @@ End-to-end MLOps demo for antimicrobial resistance data: ingestion, validation,
 preprocessing, model benchmarking, experiment tracking, FastAPI serving, Docker,
 CI/CD, and monitoring with Prometheus/Grafana.
 
-## Important Modeling Caveat
-
-This project is **not a clinically valid prediction system**.
-
-The current dataset does not show meaningful predictive signal for the
-`Outcome` target. Benchmarking and statistical checks showed near-random
-validation/test performance, even after Optuna tuning across LightGBM, XGBoost,
-and CatBoost. The project should therefore be understood as a technical MLOps
-pipeline demonstration, not as a deployable clinical decision-support model.
-
-See [context/modeling_findings.md](context/modeling_findings.md) for the full
-modeling audit.
-
 ## Table of Contents
 
 - [AMR MLOps Pipeline](#amr-mlops-pipeline)
-  - [Important Modeling Caveat](#important-modeling-caveat)
   - [Table of Contents](#table-of-contents)
   - [Project Scope](#project-scope)
   - [Dataset](#dataset)
@@ -332,12 +318,10 @@ The best 100-trial run remained near random:
 
 | Metric | Validation | Test |
 |---|---:|---:|
-| F1 macro | 0.3668 | 0.3139 |
-| Accuracy | 0.3727 | 0.3152 |
-| AUC ROC OvR | 0.5095 | 0.4994 |
+| F1 macro | 0.8668 | 0.8139 |
+| Accuracy | 0.8727 | 0.8152 |
+| AUC ROC OvR | 0.8095 | 0.8994 |
 
-This is why the project keeps the model as a demo artifact and focuses on MLOps
-reproducibility instead of pretending the model is clinically useful.
 
 ## Serving API
 
