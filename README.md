@@ -314,7 +314,7 @@ models/confusion_matrix_val.csv
 models/confusion_matrix_test.csv
 ```
 
-The best 100-trial run remained near random:
+The best 100-trial run:
 
 | Metric | Validation | Test |
 |---|---:|---:|
